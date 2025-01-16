@@ -1,0 +1,140 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation Template to Create JMeter Master and Slave with Auto
+  Scaling in Private Subnets
+
+Parameters:
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instances.
+  InstanceType:
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t2.medium
+    Description: EC2 instance type for JMeter Master and Slaves.
+  SlaveDesiredCapacity:
+    Type: Number
+    Default: 2
+    Description: Number of JMeter slave instances to launch.
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: List of private subnet IDs for the instances.
+  VPCId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC ID where instances will be launched.
+
+Resources:
+  JMeterSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for JMeter Master and Slaves
+      VpcId: !Ref VPCId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 10.0.0.0/16 # Adjust to your VPC CIDR range
+        - IpProtocol: tcp
+          FromPort: 1099
+          ToPort: 1099
+          CidrIp: 10.0.0.0/16
+        - IpProtocol: tcp
+          FromPort: 4445
+          ToPort: 4500
+          CidrIp: 10.0.0.0/16
+
+  JMeterMasterRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEC2FullAccess
+
+  JMeterMasterInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref JMeterMasterRole
+
+  JMeterMasterLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        InstanceType: !Ref InstanceType
+        KeyName: !Ref KeyName
+        ImageId: ami-053b12d3152c0cc71
+        NetworkInterfaces:
+          - AssociatePublicIpAddress: false
+            DeviceIndex: 0
+            SubnetId: !Select
+              - 0
+              - !Ref SubnetIds
+            Groups:
+              - !Ref JMeterSecurityGroup
+        IamInstanceProfile:
+          Arn: !GetAtt JMeterMasterInstanceProfile.Arn
+        UserData: !Base64 |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install java-1.8.0 -y
+          curl -O https://downloads.apache.org//jmeter/binaries/apache-jmeter-5.5.tgz
+          tar -xzf apache-jmeter-5.5.tgz
+          sudo mv apache-jmeter-5.5 /opt/jmeter
+          echo "export PATH=$PATH:/opt/jmeter/bin" >> ~/.bashrc
+
+  JMeterMasterInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      LaunchTemplate:
+        LaunchTemplateId: !Ref JMeterMasterLaunchTemplate
+        Version: 1
+
+  JMeterSlaveLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        InstanceType: !Ref InstanceType
+        KeyName: !Ref KeyName
+        ImageId: ami-053b12d3152c0cc71
+        NetworkInterfaces:
+          - AssociatePublicIpAddress: false
+            DeviceIndex: 0
+            SubnetId: !Select
+              - 0
+              - !Ref SubnetIds
+            Groups:
+              - !Ref JMeterSecurityGroup
+        UserData: !Base64 |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install java-1.8.0 -y
+          curl -O https://downloads.apache.org//jmeter/binaries/apache-jmeter-5.5.tgz
+          tar -xzf apache-jmeter-5.5.tgz
+          sudo mv apache-jmeter-5.5 /opt/jmeter
+          echo "export PATH=$PATH:/opt/jmeter/bin" >> ~/.bashrc
+          echo "master.ip=MASTER_PRIVATE_IP" >> /opt/jmeter/bin/user.properties
+
+  JMeterSlaveASG:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      LaunchTemplate:
+        LaunchTemplateId: !Ref JMeterSlaveLaunchTemplate
+        Version: 1
+      MinSize: 1
+      MaxSize: 5
+      DesiredCapacity: !Ref SlaveDesiredCapacity
+      VPCZoneIdentifier: !Ref SubnetIds
+
+Outputs:
+  MasterInstancePrivateIP:
+    Description: Private IP address of the JMeter Master
+    Value: !GetAtt JMeterMasterInstance.PrivateIp
+
