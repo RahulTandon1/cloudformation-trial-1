@@ -1,0 +1,4 @@
+﻿api_url,userID,attribute,ContentTypeStuff
+jsonplaceholder.typicode.com,1,albums,application/json; charset=UTF-8
+jsonplaceholder.typicode.com,2,todos,application/json; charset=UTF-8
+jsonplaceholder.typicode.com,3,posts,invalid content type
