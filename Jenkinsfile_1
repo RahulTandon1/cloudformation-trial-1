@@ -1,0 +1,30 @@
+pipeline {
+    agent any
+    
+    parameters {
+        stashedFile 'test_data'
+        stashedFile 'jmx_file'
+    }
+    stages {
+        stage('Moving input files') {
+            steps {
+                // to do: throw error if input files are not present
+                withFileParameter('test_data') {
+                    sh 'mv $test_data test_data.csv'
+                }
+                withFileParameter('jmx_file') {
+                    sh 'mv $jmx_file test_plan.jmx'
+                }
+            }
+        }
+        stage('Configure EC2 instances') {
+            steps {
+                sh '''alias aws="/usr/local/bin/aws"
+                aws --version
+                aws ec2 describe-instances --region ap-south-1
+                '''
+            }
+        }
+    }
+}
+
