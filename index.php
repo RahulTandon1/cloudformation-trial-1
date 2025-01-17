@@ -1,5 +1,3 @@
-- ''
-- - |
 <html>
     <head>
         <title>AWS CloudFormation PHP Sample</title>
