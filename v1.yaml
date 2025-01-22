@@ -1,0 +1,103 @@
+Parameters:
+  S3URLOfCsv:
+    Description: S3 URI of the test data CSV
+    Type: String
+  S3URLOfJMX:
+    Description: S3 URI of the JMeter Test plan (.jmx file)
+    Type: String
+Resources:
+  LoadTestingWorkerInstance:
+    Type: 'AWS::EC2::Instance'
+    Metadata:
+      'AWS::CloudFormation::Init':
+        configSets:
+          InstallSet:
+            - Install
+        Install:
+          files:
+            /var/edfora_load_test/jmeter.properties:
+              source: https://raw.githubusercontent.com/RahulTandon1/cloudformation-trial-1/refs/heads/main/index.php
+            /var/edfora_load_test/test_plan.jmx: 
+              source: https://raw.githubusercontent.com/RahulTandon1/cloudformation-trial-1/refs/heads/main/sample_api_test_plan.jmx
+              # authentication: # needs to refer to an Authentication resource made earlier
+
+            # TODO: replace this with filename the jmx expects.
+            /var/edfora_load_test/user_data.csv: 
+              source: https://raw.githubusercontent.com/RahulTandon1/cloudformation-trial-1/refs/heads/main/configVars.csv
+              # mode: '000600'
+              # owner: apache
+              # group: apache
+    CreationPolicy:
+      # ensures that the EC2 instance waits for the cfn-signal call from its
+      # user data to complete, before it gets marked as ready.
+      ResourceSignal:
+        Count: 1
+        Timeout: PT5M
+    Properties: 
+      ImageId: ami-0d2614eafc1b0e4d2
+      InstanceType: t2.micro
+      KeyName: instance-1-pair-1 # hardcoding name of keypair from AWS console
+      IamInstanceProfile: loadtest_bucket_s3_role # hardcoding
+      SecurityGroups:
+        - !Ref OurCustomSecurityGroup
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          # the -x flag prints the command before executing its
+          # the -e flag throws an error if any of the commands return a non-0 exit code.
+          yum update -y aws-cfn-bootstrap
+          /opt/aws/bin/cfn-init -v \
+            --stack ${AWS::StackName} \
+            --resource LoadTestingWorkerInstance \
+            --configsets InstallSet \
+            --region ${AWS::Region}
+          /bin/echo "this should hopefully work and print an s3 uri:"
+          /bin/echo ${S3URLOfCsv}
+          /bin/echo "checking whether one of the files was made"
+          ls /var/edfora_load_test/jmeter.properties
+          # downloading CSV and JMX files for the test
+          aws s3 cp ${S3URLOfCsv} /var/edfora_load_test/test_plan.jmx
+          aws s3 cp ${S3URLOfJMX}  /var/edfora_load_test/test_data.csv
+          # start the JMeter server
+          # --- code related to uploading stuff ---
+          s3_prefix="s3://v1-edfora-load-test-reports/2025/20-Jan-12h:41m:44s"
+          s3_uri="$s3_prefix/results.txt"
+          aws s3 cp /var/edfora_load_test/user_data.csv $s3_uri
+          /bin/echo "\n --- will now mark the instance as created --- \n\n"
+          # --- the command below marks the instance as successfully created
+          /opt/aws/bin/cfn-signal \
+            -e $? \
+            --stack ${AWS::StackName} \
+            --resource LoadTestingWorkerInstance \
+            --region ${AWS::Region}
+           
+  OurCustomSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Enable SSH and custom ports 8000-8004
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0   # to allow traffic from any IP address
+        - IpProtocol: tcp
+          FromPort: 8000
+          ToPort: 8004
+          CidrIp: 0.0.0.0/0   # to allow traffic from any IP address
+
+  # send a post request to https://uaxk2blilcywvfgutvdqj446bi0mbvhl.lambda-url.ap-south-1.on.aws/
+  # on stack creation
+  StackStatusChangeRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventPattern:
+        source:
+          - "aws.cloudformation"
+        detail-type:
+          - "CloudFormation Stack Status Change"
+        detail:
+          status:
+            - "CREATE_COMPLETE"
+      Targets:
+        - Id: "TargetAPI"
+          Arn: !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:myFirstLambda_destination"
