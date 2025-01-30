@@ -1,6 +1,6 @@
 pipeline {
-    agent { label 'my-node' }
-    
+    agent any
+
     environment {
         AWS_CLI = "/usr/local/bin/aws"
         PYTHON = "/Users/rahultandon/.pyenv/versions/3.10.2/bin/python"
@@ -22,10 +22,6 @@ pipeline {
     }
     stages {
         stage('Moving input files') {
-            agent {
-                label 'my-node'
-                reuseNode: true 
-            }
             steps {
                 // to do: throw error if input files are not present
                 withFileParameter('test_data') {
@@ -40,13 +36,12 @@ pipeline {
         }
         
         stage('Verify assumed resources exist') {
-            agent {
-                label 'my-node'
-                reuseNode: true 
-            }
             steps {
                 // useful for debugging purposes
                 // sh 'ls -al ./'
+                sh 'pwd'
+
+                sh 'ls -al ${WORKSPACE}'
                 
                 sh '${AWS_CLI} --version' // ensure AWS CLI is accessible
                 
@@ -59,13 +54,7 @@ pipeline {
 
         }
 
-        stage('Split CSV, upload to S3') {
-            
-            agent {
-                label 'my-node'
-                reuseNode: true 
-            }
-
+        stage('Split CSV, upload to S3') {  
             steps {
                 git branch: 'main', url: '/Users/rahultandon/dev/trying-stuff/l-aws/jmeter-automation-repo'
                 
@@ -77,6 +66,7 @@ pipeline {
                 # example 2025/20-Jan-12h:33m:12s
                 current_date_time="$(date '+%Y/%d-%b-%Hh:%Mm:%Ss')"
                 echo $current_data_time
+                pwd
                 cd 04
                 ${PYTHON} hello.py $(date '+%Y/%d-%b-%Hh:%Mm:%Ss') test_data.csv test_plan.jmx $LOAD_TEST_S3_BUCKET $LOAD_TEST_QUEUE
                 '''
