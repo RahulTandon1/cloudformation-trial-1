@@ -1,6 +1,7 @@
 import sys
 import boto3
 import csv
+import tempfile
 
 
 if __name__ == '__main__':
@@ -57,8 +58,10 @@ if __name__ == '__main__':
     num_rows_left = num_rows % num_workers
     
     # paths of temporary files for each worker
-    TEMP_DIR_PREFIX = f"/tmp/{test_unique_id}"
-    paths_to_chunk_csvs = [f"{TEMP_DIR_PREFIX}/{worker_index}.csv" for worker_index in range(num_workers)]
+    # temp_dir_prefix = f"/tmp/{test_unique_id}"
+    temp_dir_manager_obj = tempfile.TemporaryDirectory() # remember to call .cleanup() once done
+    temp_dir_prefix = temp_dir_manager_obj.name
+    paths_to_chunk_csvs = [f"{temp_dir_prefix}/{worker_index}.csv" for worker_index in range(num_workers)]
     
     # allocate rows[0, (chunk_size * num_workers) ] across num_workers
     # inclusive of 0, exclusive of end index
@@ -101,7 +104,8 @@ if __name__ == '__main__':
         list_of_s3_csv_uris.append(f'{s3_bucket}/{output_key}')
     
     print(f"Completed Step 2: CSV chunks have been uploaded to S3: \n {list_of_s3_csv_uris} \n")
-
+    
+    temp_dir_manager_obj.cleanup() # cleanup the temp dir created in step 1
     # ==============================================================================
     
     # step 3: for each chunk_s3_uri, send a message to SQS
