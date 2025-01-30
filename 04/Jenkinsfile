@@ -46,9 +46,12 @@ pipeline {
             steps {
                 git branch: 'main', url: '/Users/rahultandon/dev/trying-stuff/l-aws/jmeter-automation-repo'
                 // sh 'ls -al'
-                sh 'cd 04'
-                sh 'python3 hello.py'
-                sh 'exit 1'
+                
+                // the code below is tightly coupled to the git repo where the automation code is stored.
+                sh '''
+                cd 04
+                python3 hello.py
+                '''
             }
         }
         
