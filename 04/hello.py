@@ -88,7 +88,8 @@ if __name__ == '__main__':
         temp_output_file = paths_to_chunk_csvs[ worker_index ]
         
         # append to previous temp file
-        with open(temp_output_file, "a") as output_file:
+        with open(temp_output_file, "a", newline="") as output_file:
+            writer = csv.writer(output_file)
             writer.writerow(row)
     
     # now all rows from the master CSV have been distributed across files in <paths_to_chunk_csvs>
