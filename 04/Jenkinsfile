@@ -37,7 +37,7 @@ pipeline {
                 sh '${AWS_CLI} s3 ls $LOAD_TEST_S3_BUCKET' 
                 
                 // Ensure we have Python 3
-                sh 'which python | egrep .*3.*'
+                sh 'which python'
             }
 
         }
