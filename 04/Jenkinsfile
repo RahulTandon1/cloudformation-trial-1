@@ -37,12 +37,12 @@ pipeline {
                 sh '${AWS_CLI} s3 ls $LOAD_TEST_S3_BUCKET' 
                 
                 // Ensure we have Python 3
-                sh 'which python | egrep ".*3.*'
+                sh 'which python | egrep .*3.*'
             }
 
         }
 
-        stage('Split CSV, upload to S3 & ') {
+        stage('Split CSV, upload to S3 ') {
             steps {
                 sh 'python hello.py'
                 sh 'exit 1'
