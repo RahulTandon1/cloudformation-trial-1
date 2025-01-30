@@ -80,7 +80,19 @@ if __name__ == '__main__':
             writer = csv.writer(output_file)
             writer.writerow(header_line)  # Write header line
             writer.writerows(chunk)   # Write rows
-
+        
+    # ===== DEBUGGING =====
+    print("\n---- original rows -----\n")
+    print(rows)
+    print("\n---- temp_rows rows -----\n")
+    for worker_index in range(num_workers):
+        temp_output_file = paths_to_chunk_csvs[worker_index]
+        with open(temp_output_file, "w", newline="") as output_file:
+            print(f"\n--- contents of index {worker_index} ---\n")
+            reader = csv.reader(output_file)
+            print(list(reader))
+    print("\n---- end of debug output -----\n")
+        
     # distribute the rows[(chunk_size * num_workers), num_rows]
     # starting at the first worker
     remaining_rows = rows[(chunk_size * num_workers) : num_rows]
