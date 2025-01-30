@@ -71,7 +71,7 @@ if __name__ == '__main__':
         # find the chunk range for this worker
         from_index = worker_index * chunk_size # inclusive of this index
         to_index = (worker_index + 1) * chunk_size # exclusive of this index
-        chunk = rows[ from_index : from_index]
+        chunk = rows[ from_index : to_index]
         
         temp_output_file = paths_to_chunk_csvs[ worker_index ]
         # Write chunk to a NEW temporary CSV file
