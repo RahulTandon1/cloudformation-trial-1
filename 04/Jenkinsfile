@@ -9,7 +9,7 @@ pipeline {
             defaultValue: '/Users/rahultandon/dev/trying-stuff/l-aws/sample_files/sample.csv'
         )
         stashedFile (
-            name: 'jmx_file'.
+            name: 'jmx_file',
             defaultValue: '/Users/rahultandon/dev/trying-stuff/l-aws/sample_files/sample_api_test_plan.jmx'
         )
         string(
