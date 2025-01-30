@@ -43,8 +43,10 @@ pipeline {
         }
 
         stage('Split CSV, upload to S3 & ') {
-            sh 'python hello.py'
-            sh 'exit 1'
+            steps {
+                sh 'python hello.py'
+                sh 'exit 1'
+            }
         }
         
         stage('Upload to S3 & Configure EC2 instances') {
