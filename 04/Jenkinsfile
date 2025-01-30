@@ -5,11 +5,11 @@ pipeline {
     parameters {
         // TODO: remove hardcoded default value
          stashedFile (
-            name: 'test_data'
+            name: 'test_data',
             defaultValue: '/Users/rahultandon/dev/trying-stuff/l-aws/sample_files/sample.csv'
         )
         stashedFile (
-            name: 'jmx_file'
+            name: 'jmx_file'.
             defaultValue: '/Users/rahultandon/dev/trying-stuff/l-aws/sample_files/sample_api_test_plan.jmx'
         )
         string(
