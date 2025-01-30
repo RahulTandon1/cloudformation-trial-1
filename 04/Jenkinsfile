@@ -31,7 +31,8 @@ pipeline {
         
         stage('Verify assumed resources exist') {
             steps {
-                sh 'ls -al ./'          // useful for debugging purposes
+                // useful for debugging purposes
+                // sh 'ls -al ./'
                 
                 sh '${AWS_CLI} --version' // ensure AWS CLI is accessible
                 
