@@ -49,8 +49,8 @@ if __name__ == '__main__':
     print("num_rows", num_rows)
     print("first 5 lines of CSV data", rows[:5])
     
-    if num_workers < num_rows:
-        sys.exit('The number of workers is less than number of rows in the CSV')
+    if num_rows < num_workers:
+        sys.exit('Number of rows in CSV is less than number of workers to distribute them across')
 
     
     chunk_size = num_rows // num_workers
