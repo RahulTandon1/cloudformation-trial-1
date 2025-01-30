@@ -3,8 +3,6 @@ pipeline {
     
     environment {
         AWS_CLI = "/usr/local/bin/aws"
-        s3_path_for_test_data = "csv default"
-        s3_path_for_jmx = "jmx default"
     }
 
     parameters {
@@ -14,6 +12,11 @@ pipeline {
             name: 'LOAD_TEST_S3_BUCKET', 
             defaultValue: 'v1-edfora-load-test-reports', 
             description: 's3 bucket for storing input CSV & JMX files + output reports'
+        )
+        string(
+            name: 'LOAD_TEST_QUEUE', 
+            defaultValue: 'https://sqs.ap-south-1.amazonaws.com/577638381290/MyQueue1.fifo', 
+            description: 'Name of SQS queue for passing chunks of master csv file to JMeter worker EC2 instances'
         )
     }
     stages {
@@ -50,88 +53,95 @@ pipeline {
         stage('Split CSV, upload to S3') {
             steps {
                 git branch: 'main', url: '/Users/rahultandon/dev/trying-stuff/l-aws/jmeter-automation-repo'
-                // sh 'ls -al'
                 
                 // the code below is tightly coupled to the git repo where the automation code is stored.
                 sh '''
+                current_date_time=$(date '+%Y/%d-%b-%Hh:%Mm:%Ss') # example 2025/20-Jan-12h:33m:12s
+                # s3_path_for_test_data="s3://$LOAD_TEST_S3_BUCKET/$current_date_time/test_data.csv"
+                # s3_path_for_jmx="s3://$LOAD_TEST_S3_BUCKET/$current_date_time/test_plan.jmx"
+
                 cd 04
-                python3 hello.py
+                python3 hello.py \
+                    ${current_data_time} \ 
+                    test_data.csv \
+                    test_plan.jmx \
+                    $LOAD_TEST_S3_BUCKET \
+                    $LOAD_TEST_QUEUE
                 '''
             }
         }
         
-        stage('Upload to S3 & Configure EC2 instances') {
-            steps {
-                git branch: 'main', url: 'https://github.com/RahulTandon1/cloudformation-trial-1'
-                script {
-                    // example value of current_data_time: 2025/20-Jan-12h:33m:12s
-                    def current_date_time= sh(script: 'echo "$(date \'+%Y/%d-%b-%Hh:%Mm:%Ss\')"', returnStdout: true).toString().trim()
-                    echo current_date_time
-                    env.s3_path_for_test_data="s3://${LOAD_TEST_S3_BUCKET}/${current_date_time}/test_data.csv"
-                    env.s3_path_for_jmx="s3://${LOAD_TEST_S3_BUCKET}/${current_date_time}/test_plan.jmx"
+        // stage('Upload to S3 & Configure EC2 instances') {
+        //     steps {
+        //         script {
+        //             // example value of current_data_time: 2025/20-Jan-12h:33m:12s
+        //             def current_date_time= sh(script: 'echo "$(date \'+%Y/%d-%b-%Hh:%Mm:%Ss\')"', returnStdout: true).toString().trim()
+        //             s3_path_for_test_data="s3://${LOAD_TEST_S3_BUCKET}/${current_date_time}/test_data.csv"
+        //             s3_path_for_jmx="s3://${LOAD_TEST_S3_BUCKET}/${current_date_time}/test_plan.jmx"
                     
-                    echo "test data path: ${env.s3_path_for_test_data}"
-                    echo "jmx path: ${env.s3_path_for_jmx}"
-                }
+        //             sh 'python '
+        //             // sh '''
+        //             // $AWS_CLI s3 cp test_data.csv $s3_path_for_test_data
+        //             // $AWS_CLI s3 cp test_plan.jmx $s3_path_for_jmx
+        //             // echo "done with s3 upload"
+        //             // exit 1
+        //             // '''
+        //         }
                 
-                sh '''
-                $AWS_CLI s3 cp test_data.csv $s3_path_for_test_data
-                $AWS_CLI s3 cp test_plan.jmx $s3_path_for_jmx
-                echo "done with s3 upload"
-                exit 1
-                '''
-            }
-        }
-        stage('Create Cloudformation stack') {
-            steps {
-                sh '''
-                $AWS_CLI cloudformation create-stack \
-                    --stack-name stack-117 \
-                    --template-body file://v1.yaml \
-                    --region ap-south-1 \
-                    --parameters \
-                        ParameterKey=S3URLOfCsv,ParameterValue="s3://v1-edfora-load-test-reports/2025/20-Jan-12h:41m:44s/test_data.csv" \
-                        ParameterKey=S3URLOfJMX,ParameterValue="s3://v1-edfora-load-test-reports/2025/20-Jan-12h:41m:44s/test_plan.jmx" \
-                    --output text
-                '''
-            }
-        }
-        stage('Wait on completion of load test') {
-            options {
-                timeout(time: 10, unit: "MINUTES")
-                // timeout(time: 2, unit: "HOURS") // TODO: for actual pipeline (could parameterize)
-            }
-            steps {
-                script {
-                    hook = registerWebhook()
-                    callbackURL = hook.url
+        //     }
+        // }
+        // stage('Create Cloudformation stack') {
+        //     steps {
+        //         git branch: 'main', url: 'https://github.com/RahulTandon1/cloudformation-trial-1'
+        //         sh '''
+        //         $AWS_CLI cloudformation create-stack \
+        //             --stack-name stack-117 \
+        //             --template-body file://v1.yaml \
+        //             --region ap-south-1 \
+        //             --parameters \
+        //                 ParameterKey=S3URLOfCsv,ParameterValue="s3://v1-edfora-load-test-reports/2025/20-Jan-12h:41m:44s/test_data.csv" \
+        //                 ParameterKey=S3URLOfJMX,ParameterValue="s3://v1-edfora-load-test-reports/2025/20-Jan-12h:41m:44s/test_plan.jmx" \
+        //             --output text
+        //         '''
+        //     }
+        // }
+        // stage('Wait on completion of load test') {
+        //     options {
+        //         timeout(time: 10, unit: "MINUTES")
+        //         // timeout(time: 2, unit: "HOURS") // TODO: for actual pipeline (could parameterize)
+        //     }
+        //     steps {
+        //         script {
+        //             hook = registerWebhook()
+        //             callbackURL = hook.url
                     
-                    // Call a remote system to start execution, passing the callback url
-                    //sh "curl -X POST -H 'Content-Type: application/json' -d '{\"callback\":\"${callbackURL}"}' http://httpbin.org/post"
+        //             // Call a remote system to start execution, passing the callback url
+        //             //sh "curl -X POST -H 'Content-Type: application/json' -d '{\"callback\":\"${callbackURL}"}' http://httpbin.org/post"
 
-                    echo "Waiting for POST to ${callbackURL}"
-                    data = waitForWebhook hook
+        //             echo "Waiting for POST to ${callbackURL}"
+        //             data = waitForWebhook hook
                     
-                    echo "Webhook called with data: ${data}"
-                    // def jsonSlurper = new JsonSlurper()
-                    // echo "Class of object is ${object.getClass()}"
-                    def object = readJSON text: data
-                    // data.S3_URL_of_test_report will contain the S3 information to the pull JMX report
-                }
-            }
-        }
-        stage('Delete provisioned infrastructure') {
-            steps {
-                sh '''echo 'TODO: complete this step'
-                $AWS_CLI cloudformation delete-stack \
-                    --stack-name arn:aws:cloudformation:ap-south-1:577638381290:stack/stack-117/3c5ca530-d71e-11ef-be7b-0685e1d5018b \
-                    --region ap-south-1
-                '''
-            }
-            // will not delete the dedicated S3 bucket for reports
-            // TODO: should we delete the csv and jmx uploaded?
-            // delete the cloudformation stack
-        }
+        //             echo "Webhook called with data: ${data}"
+        //             // def jsonSlurper = new JsonSlurper()
+        //             // echo "Class of object is ${object.getClass()}"
+        //             def object = readJSON text: data
+        //             // data.S3_URL_of_test_report will contain the S3 information to the pull JMX report
+        //         }
+        //     }
+        // }
+        // stage('Delete provisioned infrastructure') {
+        //     steps {
+        //         sh '''echo 'TODO: complete this step'
+        //         $AWS_CLI cloudformation delete-stack \
+        //             --stack-name arn:aws:cloudformation:ap-south-1:577638381290:stack/stack-117/3c5ca530-d71e-11ef-be7b-0685e1d5018b \
+        //             --region ap-south-1
+        //         '''
+        //     }
+        //     // will not delete the dedicated S3 bucket for reports
+        //     // TODO: should we delete the csv and jmx uploaded?
+        //     // delete the cloudformation stack
+        // }
+
         // stage('Create CloudFormation Stack') {
         //     steps {
         //         script {
