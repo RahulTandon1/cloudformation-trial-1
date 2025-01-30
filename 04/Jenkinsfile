@@ -3,6 +3,8 @@ pipeline {
     
     environment {
         AWS_CLI = "/usr/local/bin/aws"
+        s3_path_for_test_data = "csv default"
+        s3_path_for_jmx = "jmx default"
     }
 
     parameters {
@@ -59,19 +61,15 @@ pipeline {
         }
         
         stage('Upload to S3 & Configure EC2 instances') {
-            environment {
-                s3_path_for_test_data="default" // will be overwritten in script block below
-                s3_path_for_jmx="default" // will be overwritten in script block below
-            }
             steps {
                 git branch: 'main', url: 'https://github.com/RahulTandon1/cloudformation-trial-1'
                 script {
                     // example value of current_data_time: 2025/20-Jan-12h:33m:12s
                     def current_date_time= sh(script: 'echo "$(date \'+%Y/%d-%b-%Hh:%Mm:%Ss\')"', returnStdout: true).toString().trim()
-                    echo env.current_date_time
+                    echo current_date_time
                     env.s3_path_for_test_data="s3://${LOAD_TEST_S3_BUCKET}/${current_date_time}/test_data.csv"
                     echo s3_path_for_test_data
-                    env.s3_path_for_jmx="s3://$LOAD_TEST_S3_BUCKET/$current_date_time/test_plan.jmx"
+                    env.s3_path_for_jmx="s3://${LOAD_TEST_S3_BUCKET}/${current_date_time}/test_plan.jmx"
                     echo env.s3_path_for_jmx
                 }
                 
