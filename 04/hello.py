@@ -43,8 +43,11 @@ if __name__ == '__main__':
         reader = list(csv.reader(csv_file))
         header_line = reader[0]  # Extract headers
         rows = reader[1:]    # Extract data rows
-    
     num_rows = len(rows)
+    
+    print("nums_workers", num_workers)
+    print("num_rows", num_rows)
+    print("first 5 lines of CSV data", rows[:5])
     
     if num_workers < num_rows:
         sys.exit('The number of workers is less than number of rows in the CSV')
