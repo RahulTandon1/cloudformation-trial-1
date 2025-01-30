@@ -22,7 +22,10 @@ pipeline {
     }
     stages {
         stage('Moving input files') {
-            agent { reuseNode: true }
+            agent {
+                label 'my-node'
+                reuseNode: true 
+            }
             steps {
                 // to do: throw error if input files are not present
                 withFileParameter('test_data') {
@@ -37,7 +40,10 @@ pipeline {
         }
         
         stage('Verify assumed resources exist') {
-            agent { reuseNode: true }
+            agent {
+                label 'my-node'
+                reuseNode: true 
+            }
             steps {
                 // useful for debugging purposes
                 // sh 'ls -al ./'
@@ -54,7 +60,12 @@ pipeline {
         }
 
         stage('Split CSV, upload to S3') {
-            agent { reuseNode: true }
+            
+            agent {
+                label 'my-node'
+                reuseNode: true 
+            }
+
             steps {
                 git branch: 'main', url: '/Users/rahultandon/dev/trying-stuff/l-aws/jmeter-automation-repo'
                 
