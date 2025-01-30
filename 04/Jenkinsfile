@@ -67,11 +67,11 @@ pipeline {
                 script {
                     // example value of current_data_time: 2025/20-Jan-12h:33m:12s
                     def current_date_time= sh(script: 'echo "$(date \'+%Y/%d-%b-%Hh:%Mm:%Ss\')"', returnStdout: true).toString().trim()
-                    echo current_date_time
-                    s3_path_for_test_data="s3://${LOAD_TEST_S3_BUCKET}/${current_date_time}/test_data.csv"
+                    echo env.current_date_time
+                    env.s3_path_for_test_data="s3://${LOAD_TEST_S3_BUCKET}/${current_date_time}/test_data.csv"
                     echo s3_path_for_test_data
-                    s3_path_for_jmx="s3://$LOAD_TEST_S3_BUCKET/$current_date_time/test_plan.jmx"
-                    echo s3_path_for_jmx
+                    env.s3_path_for_jmx="s3://$LOAD_TEST_S3_BUCKET/$current_date_time/test_plan.jmx"
+                    echo env.s3_path_for_jmx
                 }
                 
                 sh '''
