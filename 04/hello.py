@@ -8,6 +8,7 @@ if __name__ == '__main__':
     '''
     num_args = len(sys.argv)
     if num_args < 6:
+        print(sys.argv)
         sys.exit('Not enough arguments were passed')
 
     test_unique_id, local_path_to_csv, local_path_to_jmx, s3_bucket, sqs_url = sys.argv[1:]
