@@ -83,7 +83,7 @@ if __name__ == '__main__':
 
     # distribute the rows[(chunk_size * num_workers), num_rows]
     # starting at the first worker
-    remaining_rows = rows[(chunk_size * num_workers), num_rows]
+    remaining_rows = rows[(chunk_size * num_workers) : num_rows]
     for index, row in enumerate(remaining_rows):
         temp_output_file = paths_to_chunk_csvs[ worker_index ]
         
