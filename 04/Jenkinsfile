@@ -62,11 +62,7 @@ pipeline {
 
                 cd 04
                 python3 hello.py \
-                    ${current_data_time} \ 
-                    test_data.csv \
-                    test_plan.jmx \
-                    $LOAD_TEST_S3_BUCKET \
-                    $LOAD_TEST_QUEUE
+                    ${current_data_time} test_data.csv test_plan.jmx $LOAD_TEST_S3_BUCKET $LOAD_TEST_QUEUE
                 '''
             }
         }
