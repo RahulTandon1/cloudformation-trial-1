@@ -114,11 +114,31 @@ if __name__ == '__main__':
     for index, path_to_chunk_csv in enumerate(paths_to_chunk_csvs):
         s3_key_upload_key = f"{test_unique_id}/tmp/{index + 1}.csv"
         s3.upload_file(path_to_chunk_csv, s3_bucket, s3_key_upload_key)
-        list_of_s3_csv_uris.append(f'{s3_bucket}/{s3_key_upload_key}')
+        list_of_s3_csv_uris.append(f's3://{s3_bucket}/{s3_key_upload_key}')
     
     print(f"Completed Step 2: CSV chunks have been uploaded to S3: \n {list_of_s3_csv_uris} \n")
     
     temp_dir_manager_obj.cleanup() # cleanup the temp dir created in step 1
-    # ==============================================================================
     
+    # ==============================================================================
     # step 3: for each chunk_s3_uri, send a message to SQS
+    # ==============================================================================
+    # ASSUMPTION!!! the SQS Queue is FIFO
+    
+    sqs = boto3.client('sqs')
+    try:
+        for index, s3_csv_uri in enumerate(list_of_s3_csv_uris):
+            # upload a message containing this to SQS with 
+            
+            # TODO: consider making this more generalized
+            msg_content = s3_csv_uri
+            response = sqs.send_message(
+                QueueUrl=sqs_url,
+                MessageBody=msg_content,
+                MessageDeduplicationId=str(index),
+                MessageGroupId=test_unique_id
+            )
+            print(f"wrote message {index+1} to SQS")
+    except Exception as e:
+        sys.exit(f'Ran into issue when writing msg for index {index} to SQS: \n{e}')
+
