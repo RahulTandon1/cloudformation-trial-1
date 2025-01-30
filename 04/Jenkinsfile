@@ -1,6 +1,10 @@
 pipeline {
     agent any
     
+    environment {
+        AWS_CLI = "/usr/local/bin/aws"
+    }
+
     parameters {
         stashedFile 'test_data'
         stashedFile 'jmx_file'
@@ -25,12 +29,30 @@ pipeline {
             }
         }
         
+        stage('Verify assumed resources exist') {
+            steps {
+                sh '${AWS_CLI} --version' // ensure AWS CLI is accessible
+                
+                // Ensure load_test_s3_bucket exists. Will throw error & exit if the bucket does not exist
+                sh '${AWS_CLI} s3 ls $LOAD_TEST_S3_BUCKET' 
+                
+                // Ensure we have Python 3
+                sh 'which python | egrep ".*3.*'
+            }
+
+        }
+
+        stage('Split CSV, upload to S3 & ') {
+            sh 'python hello.py'
+            sh 'exit 1'
+        }
+        
         stage('Upload to S3 & Configure EC2 instances') {
             steps {
                 git branch: 'main', url: 'https://github.com/RahulTandon1/cloudformation-trial-1'
-                sh '''alias aws="/usr/local/bin/aws"
-                aws --version
-                aws s3 ls $LOAD_TEST_S3_BUCKET
+                sh '''
+                $AWS_CLI --version
+                $AWS_CLI s3 ls $LOAD_TEST_S3_BUCKET
                 # will throw error & exit if the bucket does not exist
                 
                 ls -al ./
@@ -39,13 +61,13 @@ pipeline {
                 s3_path_for_test_data="s3://$LOAD_TEST_S3_BUCKET/$current_date_time/test_data.csv"
                 s3_path_for_jmx="s3://$LOAD_TEST_S3_BUCKET/$current_date_time/test_plan.jmx"
                 
-                aws s3 cp test_data.csv $s3_path_for_test_data
+                $AWS_CLI s3 cp test_data.csv $s3_path_for_test_data
                 
-                # aws s3 ls bhai_ye_exist_kari_toh_main_express_ho_jaunga
+                # $AWS_CLI s3 ls bhai_ye_exist_kari_toh_main_express_ho_jaunga
                 
-                aws s3 cp test_plan.jmx $s3_path_for_jmx                
+                $AWS_CLI s3 cp test_plan.jmx $s3_path_for_jmx                
 
-                aws cloudformation create-stack \
+                $AWS_CLI cloudformation create-stack \
                     --stack-name stack-117 \
                     --template-body file://v1.yaml \
                     --region ap-south-1 \
@@ -83,7 +105,7 @@ pipeline {
         stage('Delete provisioned infrastructure') {
             steps {
                 sh '''echo 'TODO: complete this step'
-                aws cloudformation delete-stack \
+                $AWS_CLI cloudformation delete-stack \
                     --stack-name arn:aws:cloudformation:ap-south-1:577638381290:stack/stack-117/3c5ca530-d71e-11ef-be7b-0685e1d5018b \
                     --region ap-south-1
                 '''
