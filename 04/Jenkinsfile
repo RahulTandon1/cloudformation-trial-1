@@ -31,6 +31,8 @@ pipeline {
         
         stage('Verify assumed resources exist') {
             steps {
+                sh 'ls -al ./'          // useful for debugging purposes
+                
                 sh '${AWS_CLI} --version' // ensure AWS CLI is accessible
                 
                 // Ensure load_test_s3_bucket exists. Will throw error & exit if the bucket does not exist
@@ -42,7 +44,7 @@ pipeline {
 
         }
 
-        stage('Split CSV, upload to S3 ') {
+        stage('Split CSV, upload to S3') {
             steps {
                 git branch: 'main', url: '/Users/rahultandon/dev/trying-stuff/l-aws/jmeter-automation-repo'
                 // sh 'ls -al'
@@ -58,23 +60,26 @@ pipeline {
         stage('Upload to S3 & Configure EC2 instances') {
             steps {
                 git branch: 'main', url: 'https://github.com/RahulTandon1/cloudformation-trial-1'
+                script {
+                    def current_date_time= sh script: 'echo "$(date \'+%Y/%d-%b-%Hh:%Mm:%Ss\')"', returnStdout: true
+                    echo current_date_time
+                    def s3_path_for_test_data="s3://${LOAD_TEST_S3_BUCKET}/${current_date_time}/test_data.csv"
+                    echo s3_path_for_test_data
+                }
                 sh '''
-                $AWS_CLI --version
-                $AWS_CLI s3 ls $LOAD_TEST_S3_BUCKET
-                # will throw error & exit if the bucket does not exist
-                
-                ls -al ./
-
                 current_date_time=$(date '+%Y/%d-%b-%Hh:%Mm:%Ss') # example 2025/20-Jan-12h:33m:12s
                 s3_path_for_test_data="s3://$LOAD_TEST_S3_BUCKET/$current_date_time/test_data.csv"
                 s3_path_for_jmx="s3://$LOAD_TEST_S3_BUCKET/$current_date_time/test_plan.jmx"
                 
                 $AWS_CLI s3 cp test_data.csv $s3_path_for_test_data
-                
-                # $AWS_CLI s3 ls bhai_ye_exist_kari_toh_main_express_ho_jaunga
-                
-                $AWS_CLI s3 cp test_plan.jmx $s3_path_for_jmx                
-
+                $AWS_CLI s3 cp test_plan.jmx $s3_path_for_jmx
+                exit 1
+                '''
+            }
+        }
+        stage('Create Cloudformation stack') {
+            steps {
+                sh '''
                 $AWS_CLI cloudformation create-stack \
                     --stack-name stack-117 \
                     --template-body file://v1.yaml \
