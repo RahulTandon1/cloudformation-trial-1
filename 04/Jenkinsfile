@@ -19,6 +19,11 @@ pipeline {
             defaultValue: 'https://sqs.ap-south-1.amazonaws.com/577638381290/MyQueue1.fifo', 
             description: 'Name of SQS queue for passing chunks of master csv file to JMeter worker EC2 instances'
         )
+        string (
+            name: 'NUM_WORKERS',
+            defaultValue: '2',
+            description: 'Number of JMeter worker instances to split & distribute the master CSV to'
+        )
     }
     stages {
         stage('Moving input files') {
