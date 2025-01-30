@@ -1,17 +1,9 @@
 pipeline {
     agent any
     
-
     parameters {
-        // TODO: remove hardcoded default value
-         stashedFile (
-            name: 'test_data',
-            defaultValue: '/Users/rahultandon/dev/trying-stuff/l-aws/sample_files/sample.csv'
-        )
-        stashedFile (
-            name: 'jmx_file',
-            defaultValue: '/Users/rahultandon/dev/trying-stuff/l-aws/sample_files/sample_api_test_plan.jmx'
-        )
+        stashedFile 'test_data'
+        stashedFile 'jmx_file'
         string(
             name: 'LOAD_TEST_S3_BUCKET', 
             defaultValue: 'v1-edfora-load-test-reports', 
