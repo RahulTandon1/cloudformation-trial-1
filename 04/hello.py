@@ -99,9 +99,9 @@ if __name__ == '__main__':
     # ==============================================================================
     list_of_s3_csv_uris = []
     for index, path_to_chunk_csv in enumerate(paths_to_chunk_csvs):
-        output_key = f"tmp/{index + 1}.csv"
-        s3.upload_file(path_to_chunk_csv, s3_bucket, output_key)
-        list_of_s3_csv_uris.append(f'{s3_bucket}/{output_key}')
+        s3_key_upload_key = f"{test_unique_id}/tmp/{index + 1}.csv"
+        s3.upload_file(path_to_chunk_csv, s3_bucket, s3_key_upload_key)
+        list_of_s3_csv_uris.append(f'{s3_bucket}/{s3_key_upload_key}')
     
     print(f"Completed Step 2: CSV chunks have been uploaded to S3: \n {list_of_s3_csv_uris} \n")
     
