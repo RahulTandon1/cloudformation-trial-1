@@ -61,7 +61,7 @@ pipeline {
             steps {
                 git branch: 'main', url: 'https://github.com/RahulTandon1/cloudformation-trial-1'
                 script {
-                    def current_date_time= sh script: 'echo "$(date \'+%Y/%d-%b-%Hh:%Mm:%Ss\')"', returnStdout: true
+                    def current_date_time= sh(script: 'echo "$(date \'+%Y/%d-%b-%Hh:%Mm:%Ss\')"', returnStdout: true).toString().trim()
                     echo current_date_time
                     def s3_path_for_test_data="s3://${LOAD_TEST_S3_BUCKET}/${current_date_time}/test_data.csv"
                     echo s3_path_for_test_data
