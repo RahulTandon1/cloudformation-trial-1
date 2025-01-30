@@ -1,0 +1,1 @@
+print("this verifies that hello .py can run from jenkins")
