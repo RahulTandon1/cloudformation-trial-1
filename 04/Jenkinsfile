@@ -60,7 +60,7 @@ pipeline {
         stage('Upload to S3 & Configure EC2 instances') {
             environment {
                 s3_path_for_test_data="default" // will be overwritten in script block below
-                s3_path_for_test_data="default" // will be overwritten in script block below
+                s3_path_for_jmx="default" // will be overwritten in script block below
             }
             steps {
                 git branch: 'main', url: 'https://github.com/RahulTandon1/cloudformation-trial-1'
@@ -71,6 +71,7 @@ pipeline {
                     s3_path_for_test_data="s3://${LOAD_TEST_S3_BUCKET}/${current_date_time}/test_data.csv"
                     echo s3_path_for_test_data
                     s3_path_for_jmx="s3://$LOAD_TEST_S3_BUCKET/$current_date_time/test_plan.jmx"
+                    echo s3_path_for_jmx
                 }
                 
                 sh '''
