@@ -1,5 +1,5 @@
 pipeline {
-    agent any
+    agent { label 'my-node' }
     
     environment {
         AWS_CLI = "/usr/local/bin/aws"
@@ -22,6 +22,7 @@ pipeline {
     }
     stages {
         stage('Moving input files') {
+            agent { reuseNode: true }
             steps {
                 // to do: throw error if input files are not present
                 withFileParameter('test_data') {
@@ -36,6 +37,7 @@ pipeline {
         }
         
         stage('Verify assumed resources exist') {
+            agent { reuseNode: true }
             steps {
                 // useful for debugging purposes
                 // sh 'ls -al ./'
@@ -52,6 +54,7 @@ pipeline {
         }
 
         stage('Split CSV, upload to S3') {
+            agent { reuseNode: true }
             steps {
                 git branch: 'main', url: '/Users/rahultandon/dev/trying-stuff/l-aws/jmeter-automation-repo'
                 
