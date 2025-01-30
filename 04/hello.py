@@ -87,7 +87,7 @@ if __name__ == '__main__':
     print("\n---- temp_rows rows -----\n")
     for worker_index in range(num_workers):
         temp_output_file = paths_to_chunk_csvs[worker_index]
-        with open(temp_output_file, "w", newline="") as output_file:
+        with open(temp_output_file, "r", newline="") as output_file:
             print(f"\n--- contents of index {worker_index} ---\n")
             reader = csv.reader(output_file)
             print(list(reader))
