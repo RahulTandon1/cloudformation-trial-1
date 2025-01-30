@@ -45,7 +45,8 @@ pipeline {
         stage('Split CSV, upload to S3 ') {
             steps {
                 git branch: 'main', url: '/Users/rahultandon/dev/trying-stuff/l-aws/jmeter-automation-repo'
-                sh 'cd jmeter-automation-repo/04'
+                sh 'ls -al'
+                sh '04'
                 sh 'python3 hello.py'
                 sh 'exit 1'
             }
