@@ -20,6 +20,8 @@ pipeline {
                 withFileParameter('jmx_file') {
                     sh 'mv $jmx_file test_plan.jmx'
                 }
+                fileExists 'test_data.csv'
+                fileExists 'test_plan.jmx'
             }
         }
         
@@ -30,15 +32,13 @@ pipeline {
                 aws --version
                 aws s3 ls $LOAD_TEST_S3_BUCKET
                 # will throw error & exit if the bucket does not exist
-                # echo $?
-                # aws s3 ls this-bucket-surely-does-not-exist
                 
                 ls -al ./
 
                 current_date_time=$(date '+%Y/%d-%b-%Hh:%Mm:%Ss') # example 2025/20-Jan-12h:33m:12s
                 s3_path_for_test_data="s3://$LOAD_TEST_S3_BUCKET/$current_date_time/test_data.csv"
                 s3_path_for_jmx="s3://$LOAD_TEST_S3_BUCKET/$current_date_time/test_plan.jmx"
-
+                
                 aws s3 cp test_data.csv $s3_path_for_test_data
                 
                 # aws s3 ls bhai_ye_exist_kari_toh_main_express_ho_jaunga
@@ -47,7 +47,7 @@ pipeline {
 
                 aws cloudformation create-stack \
                     --stack-name stack-117 \
-                    --template-body file://cloudformation-trial-1/v1.yaml \
+                    --template-body file://v1.yaml \
                     --region ap-south-1 \
                     --parameters \
                         ParameterKey=S3URLOfCsv,ParameterValue="s3://v1-edfora-load-test-reports/2025/20-Jan-12h:41m:44s/test_data.csv" \
@@ -84,7 +84,7 @@ pipeline {
             steps {
                 sh '''echo 'TODO: complete this step'
                 aws cloudformation delete-stack \
-                    --stack-name arn:aws:cloudformation:ap-south-1:577638381290:stack/stack-117/3c5ca530-d71e-11ef-be7b-0685e1d5018b 
+                    --stack-name arn:aws:cloudformation:ap-south-1:577638381290:stack/stack-117/3c5ca530-d71e-11ef-be7b-0685e1d5018b \
                     --region ap-south-1
                 '''
             }
