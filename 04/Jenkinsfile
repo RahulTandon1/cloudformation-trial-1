@@ -3,6 +3,7 @@ pipeline {
     
     environment {
         AWS_CLI = "/usr/local/bin/aws"
+        PYTHON = "/Users/rahultandon/.pyenv/versions/3.10.2/bin/python"
     }
 
     parameters {
@@ -63,7 +64,7 @@ pipeline {
                 current_date_time="$(date '+%Y/%d-%b-%Hh:%Mm:%Ss')"
                 echo $current_data_time
                 cd 04
-                python3 hello.py $(date '+%Y/%d-%b-%Hh:%Mm:%Ss') test_data.csv test_plan.jmx $LOAD_TEST_S3_BUCKET $LOAD_TEST_QUEUE
+                ${PYTHON} hello.py $(date '+%Y/%d-%b-%Hh:%Mm:%Ss') test_data.csv test_plan.jmx $LOAD_TEST_S3_BUCKET $LOAD_TEST_QUEUE
                 '''
             }
         }
