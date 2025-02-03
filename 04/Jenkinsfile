@@ -78,6 +78,9 @@ pipeline {
                 ${PYTHON} hello.py ${NUM_WORKERS} $(date '+%Y/%d-%b-%Hh:%Mm:%Ss') ../test_data.csv ../test_plan.jmx $LOAD_TEST_S3_BUCKET $LOAD_TEST_QUEUE
                 
                 # upload python helper to S3
+                pwd 
+                ls .
+                ls ..
                 ${AWS_CLI} s3 cp ./pull_from_sqs_and_s3.py ${S3_URI_OF_PYTHON_HELPER}
                 '''
             }

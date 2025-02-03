@@ -78,6 +78,7 @@ if __name__ == '__main__':
             writer.writerows(chunk)   # Write rows
         
     # ===== DEBUGGING =====
+    '''
     print("\n---- original rows -----\n")
     print(rows)
     print("\n---- temp_rows rows -----\n")
@@ -88,6 +89,7 @@ if __name__ == '__main__':
             reader = csv.reader(output_file)
             print(list(reader))
     print("\n---- end of debug output -----\n")
+    '''
         
     # distribute the rows[(chunk_size * num_workers), num_rows]
     # starting at the first worker
