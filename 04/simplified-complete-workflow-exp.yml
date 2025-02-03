@@ -163,6 +163,10 @@ Resources:
   # =========== Master Instance ============
   MasterInstance:
     Type: AWS::EC2::Instance
+    
+    DependsOn: # TODO: replace this with ASG ID
+      - WorkerInstance1
+      - WorkerInstance2
     CreationPolicy:
       # ensures that the EC2 instance waits for the cfn-signal call from its
       # user data to complete, before it gets marked as ready.
@@ -200,11 +204,7 @@ Resources:
           # ---------- TODO: temporary: submit to webhook 1 ------------
           echo "TEMP, TODO call webhook ${WebhookUrlForStackCreation}"
           # ---------- run JMeter on master ------------
-          
-          /home/ec2-user/apache-jmeter-5.6.3/bin/jmeter-server \
-          # run in CLI mode 
-          -n \ 
-          # provide test plan
+          /home/ec2-user/apache-jmeter-5.6.3/bin/jmeter-server -n \ 
           -t ${PathForJMX} \ 
           -R ${WorkerInstance1.PrivateIpAddress}:8000,${WorkerInstance2.PrivateIpAddress}:8000 \
           -o /home/ec2-user/jmeter-report
