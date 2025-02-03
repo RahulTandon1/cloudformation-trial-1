@@ -46,10 +46,6 @@ if __name__ == '__main__':
         rows = reader[1:]    # Extract data rows
     num_rows = len(rows)
     
-    print("nums_workers", num_workers)
-    print("num_rows", num_rows)
-    print("first 5 lines of CSV data", rows[:5])
-    
     if num_rows < num_workers:
         sys.exit('Number of rows in CSV is less than number of workers to distribute them across')
 
@@ -141,4 +137,6 @@ if __name__ == '__main__':
             print(f"wrote message {index+1} to SQS")
     except Exception as e:
         sys.exit(f'Ran into issue when writing msg for index {index} to SQS: \n{e}')
+    
+    print('Completed Step 3: Send messages containing S3 URIs to SQS')
 

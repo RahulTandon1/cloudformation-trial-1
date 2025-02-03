@@ -4,6 +4,8 @@ pipeline {
     environment {
         AWS_CLI = "/usr/local/bin/aws"
         PYTHON = "/Users/rahultandon/.pyenv/versions/3.10.2/bin/python"
+        CFN_TEMPLATE_ABS_PATH = "/Users/rahultandon/dev/trying-stuff/l-aws/jmeter-automation-repo/04/simplified-complete-workflow-exp.yml"
+        S3_URI_OF_PYTHON_HELPER="s3://v1-edfora-load-test-reports/2025/pull_from_sqs_and_s3.py"
     }
 
     parameters {
@@ -59,7 +61,7 @@ pipeline {
 
         }
 
-        stage('Split CSV, upload to S3') {  
+        stage('Split CSV, upload to S3, upload URIs to SQS') {  
             steps {
                 git branch: 'main', url: '/Users/rahultandon/dev/trying-stuff/l-aws/jmeter-automation-repo'
                 
@@ -74,7 +76,39 @@ pipeline {
                 pwd
                 cd 04
                 ${PYTHON} hello.py ${NUM_WORKERS} $(date '+%Y/%d-%b-%Hh:%Mm:%Ss') ../test_data.csv ../test_plan.jmx $LOAD_TEST_S3_BUCKET $LOAD_TEST_QUEUE
+                
+                # upload python helper to S3
+                ${AWS_CLI} s3 cp ./pull_from_sqs_and_s3.py ${S3_URI_OF_PYTHON_HELPER}
                 '''
+            }
+        }
+
+        stage('Provision resource & run test') {
+            steps {
+                script {
+                    hooktoNotifyStackCreated = registerWebhook()
+                    hooktoNotifyLoadTestCompleted = registerWebhook()
+                    stackName = "Loadtest${BUILD_NUMBER}"
+                    sh '''
+                    pwd
+                    echo "todo complete integration cloudformation"
+                    exit 0
+                    $AWS_CLI cloudformation create-stack \
+                        --stack-name ${stackName} \
+                        --template-body file://${CFN_TEMPLATE_ABS_PATH} \
+                        --capabilities CAPABILITY_IAM \
+                        --region ap-south-1 \
+                        --parameters \
+                            ParameterKey=QueueURL,ParameterValue="https://sqs.ap-south-1.amazonaws.com/577638381290/MyQueue1.fifo" \
+                            ParameterKey=MsgGroupId,ParameterValue="my_group_1" \
+                            ParameterKey=PathForCSV,ParameterValue="data.csv" \
+                            ParameterKey=PathForJMX,ParameterValue="test_plan.jmx" \
+                            ParameterKey=S3UriForMasterCSV,ParameterValue="s3://v1-edfora-load-test-reports/2025/30-Jan-19h:26m:49s/master_data.csv" \
+                            ParameterKey=S3UriForJMXFile,ParameterValue="s3://v1-edfora-load-test-reports/2025/30-Jan-19h:26m:49s/test_plan.jmx" \
+                            ParameterKey=S3UriForPythonFile,ParameterValue="${python_s3_uri}"
+                        --output text
+                    '''
+                }
             }
         }
         
