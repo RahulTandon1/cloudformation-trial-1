@@ -1,0 +1,215 @@
+# Aim: 
+# Make an EC2 instance with cfn init metadata & user data
+# takes arguments:
+# - required for Python script: QueueURL, MsgGroupId, Path for data.csv, Path for jmx 
+# s3://v1-edfora-load-test-reports/2025/30-Jan-19h:26m:49s/tmp/1.csv
+# Basically want to ensure things work with 1 master and 1 worker without any of the VPC, ASG, Security Group complication
+
+Parameters:
+  # ============= SQS related ===========
+  S3UriForPythonFile:
+    Type: String
+  QueueURL:
+    Type: String
+  MsgGroupId:
+    Type: String
+  # ============= JMeter input related ===========
+  S3UriForMasterCSV:
+    Type: String
+  S3UriForJMXFile:
+    Type: String
+  PathForCSV:
+    Type: String
+    Description: Location where CSV will downloaded on the master & worker machines
+  PathForJMX:
+    Type: String
+    Description: Location where JSX will downloaded to on the master EC2 instance
+
+  WebhookUrlForStackCreation:
+    Description: URL to send a POST request to after Cloudformation stack has been provisioned.
+    Type: String
+  
+  WebhookUrlForLoadTestCompletion:
+    Description: URL to send a POST request to after Loadtest has been completed.
+    Type: String
+# Mappings:
+
+Resources:
+  # ============ Worker Instance 1 ============
+  WorkerInstance1:
+    Type: AWS::EC2::Instance
+    Metadata:
+      'AWS::CloudFormation::Init':
+        configSets:
+        # we define only a single configSet named InstallSet
+          InstallSet:
+          - InstallPipAndBoto3
+        
+        # TODO: install these yourself in the AMI and remove this from here
+        InstallPipAndBoto3:
+          packages:
+            yum: # Amazon Linux specific
+              python3-pip: []
+              python3-boto3: []
+    
+    CreationPolicy:
+      # ensures that the EC2 instance waits for the cfn-signal call from its
+      # user data to complete, before it gets marked as ready.
+      ResourceSignal:
+        Count: 1
+        Timeout: PT5M
+    
+    Properties:
+      InstanceType: t2.medium
+      ImageId: ami-0f47a981b9c0f760d # Amazon Linux setup
+      KeyName: instance-1-pair-1 # hardcoding
+      IamInstanceProfile: exp-s3-and-sqs  # hardcoding
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          # the -x flag prints the command before executing its
+          # the -e flag throws an error if any of the commands return a non-0 exit code.
+          # --------- update cfn scripts ---------
+          yum update -y aws-cfn-bootstrap
+          # --------- run cfn init ---------
+          /opt/aws/bin/cfn-init -v \
+            --stack ${AWS::StackName} \
+            --resource WorkerInstance1 \
+            --configsets InstallSet \
+            --region ${AWS::Region} \
+            --role exp-s3-and-sqs
+          # ------- switching to ec2-user dir ------
+          cd /home/ec2-user
+          # ------- download Python helper to local ------
+          aws s3 cp ${S3UriForPythonFile} ./pull_from_sqs_and_s3.py
+          # ------- download CSV to local ------
+          ls pull_from_sqs_and_s3.py
+          python3 pull_from_sqs_and_s3.py ${QueueURL} ${MsgGroupId} ${PathForCSV}
+          echo "Successfully pulled from SQS and S3" > /home/ec2-user/this_file_proves_that_user_data_run
+          # --- run JMeter ---
+          # /home/ec2-user/apache-jmeter-5.6.3/bin/jmeter-server &
+          # the command below should ping the ASG that the instance has been successfully created
+          /opt/aws/bin/cfn-signal \
+            -e $? \
+            --stack ${AWS::StackName} \
+            --resource WorkerInstance1 \
+            --region ${AWS::Region}
+          echo "lorem ipsum" >> /home/ec2-user/this_file_proves_that_user_data_run
+  
+
+  # ============ Worker Instance 2 ============
+  WorkerInstance2:
+    Type: AWS::EC2::Instance
+    Metadata:
+      'AWS::CloudFormation::Init':
+        configSets:
+        # we define only a single configSet named InstallSet
+          InstallSet:
+          - InstallPipAndBoto3
+        
+        # TODO: install these yourself in the AMI and remove this from here
+        InstallPipAndBoto3:
+          packages:
+            yum: # Amazon Linux specific
+              python3-pip: []
+              python3-boto3: []
+    
+    CreationPolicy:
+      # ensures that the EC2 instance waits for the cfn-signal call from its
+      # user data to complete, before it gets marked as ready.
+      ResourceSignal:
+        Count: 1
+        Timeout: PT5M
+    
+    Properties:
+      InstanceType: t2.medium
+      ImageId: ami-0f47a981b9c0f760d # Amazon Linux setup
+      KeyName: instance-1-pair-1 # hardcoding
+      IamInstanceProfile: exp-s3-and-sqs  # hardcoding
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          # the -x flag prints the command before executing its
+          # the -e flag throws an error if any of the commands return a non-0 exit code.
+          # --------- update cfn scripts ---------
+          yum update -y aws-cfn-bootstrap
+          # --------- run cfn init ---------
+          /opt/aws/bin/cfn-init -v \
+            --stack ${AWS::StackName} \
+            --resource WorkerInstance2 \
+            --configsets InstallSet \
+            --region ${AWS::Region} \
+            --role exp-s3-and-sqs
+          # ------- switching to ec2-user dir ------
+          cd /home/ec2-user
+          # ------- download Python helper to local ------
+          aws s3 cp ${S3UriForPythonFile} ./pull_from_sqs_and_s3.py
+          # ------- download CSV to local ------
+          ls pull_from_sqs_and_s3.py
+          python3 pull_from_sqs_and_s3.py ${QueueURL} ${MsgGroupId} ${PathForCSV}
+          echo "Successfully pulled from SQS and S3" > /home/ec2-user/this_file_proves_that_user_data_run
+          # --- run JMeter ---
+          # /home/ec2-user/apache-jmeter-5.6.3/bin/jmeter-server &
+          # the command below should ping the ASG that the instance has been successfully created
+          /opt/aws/bin/cfn-signal \
+            -e $? \
+            --stack ${AWS::StackName} \
+            --resource WorkerInstance2 \
+            --region ${AWS::Region}
+          echo "lorem ipsum" >> /home/ec2-user/this_file_proves_that_user_data_run
+
+  
+  
+  # =========== Master Instance ============
+  MasterInstance:
+    Type: AWS::EC2::Instance
+    CreationPolicy:
+      # ensures that the EC2 instance waits for the cfn-signal call from its
+      # user data to complete, before it gets marked as ready.
+      ResourceSignal:
+        Count: 1
+        Timeout: PT5M
+    
+    Properties:
+      InstanceType: t2.medium
+      ImageId: ami-0f47a981b9c0f760d # Amazon Linux setup
+      KeyName: instance-1-pair-1 # hardcoding
+      IamInstanceProfile: exp-s3-and-sqs  # hardcoding
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          # the -x flag prints the command before executing its
+          # the -e flag throws an error if any of the commands return a non-0 exit code.
+          # --------- update cfn scripts ---------
+          yum update -y aws-cfn-bootstrap
+          # --------- NOT running cfn init for this ---------
+          # ------- download master CSV and JMX from S3 ------
+          cd /home/ec2-user
+          aws s3 cp ${S3UriForMasterCSV} ${PathForCSV}
+          aws s3 cp ${S3UriForJMXFile} ${PathForJMX}
+          # --------- signal for CREATE_COMPLETE ---------
+          # the command below should ping Cloudformation that the instance has been successfully created
+          # ideally we want atomicity: Either signal both cloudformation & Jenkins or neither
+          # could also fire a Lambda through a custom resource that depends on Lambda
+          /opt/aws/bin/cfn-signal \
+            -e $? \
+            --stack ${AWS::StackName} \
+            --resource MasterInstance \
+            --region ${AWS::Region}
+          echo "lorem ipsum" > /home/ec2-user/this_file_proves_that_user_data_run
+          # ---------- TODO: temporary: submit to webhook 1 ------------
+          echo "TEMP, TODO call webhook ${WebhookUrlForStackCreation}"
+          # ---------- run JMeter on master ------------
+          
+          /home/ec2-user/apache-jmeter-5.6.3/bin/jmeter-server \
+          # run in CLI mode 
+          -n \ 
+          # provide test plan
+          -t ${PathForJMX} \ 
+          -R ${WorkerInstance1.PrivateIpAddress}:8000,${WorkerInstance2.PrivateIpAddress}:8000 \
+          -o /home/ec2-user/jmeter-report
+          echo "finished jmeter test. Will post to webhook ${WebhookUrlForLoadTestCompletion}"
+          # todo upload report to S3
+          # post to webhook 2
+
+
